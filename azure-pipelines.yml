@@ -1,0 +1,9 @@
+trigger:
+- master
+
+pool:
+  name: Default  # or your custom pool name if you created one
+
+steps:
+- script: echo "Running on self-hosted agent KEERTHI"
+  displayName: "Test self-hosted agent"
