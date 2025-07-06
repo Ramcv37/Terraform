@@ -2,8 +2,11 @@ trigger:
 - master
 
 pool:
-  name: Default  # or your custom pool name if you created one
+  name: Default
 
 steps:
-- script: echo "Running on self-hosted agent KEERTHI"
-  displayName: "Test self-hosted agent"
+- powershell: |
+    Write-Host "Listing contents of current directory:"
+    Get-ChildItem
+  displayName: "List files in directory (Windows)"
+
