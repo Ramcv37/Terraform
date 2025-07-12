@@ -2,12 +2,12 @@ trigger:
 - master
 
 pool:
-  name: default  # Using your self-hosted agent pool
+  name: default
   demands:
     - agent.name -equals Terraform
 
 variables:
-- group: terraform-secrets   # Your Azure DevOps variable group
+- group: terraform-secrets   # Azure DevOps Variable Group containing ARM credentials
 - name: TF_IN_AUTOMATION
   value: 'true'
 - name: TF_DIR
@@ -45,6 +45,17 @@ steps:
     script: |
       cd "$(TF_DIR)"
       terraform plan -out=tfplan
+      if (!(Test-Path "tfplan")) {
+        Write-Error "tfplan file was not created. Failing the build."
+      }
+
+- task: PowerShell@2
+  displayName: 'Terraform Show Plan (Optional)'
+  inputs:
+    targetType: 'inline'
+    script: |
+      cd "$(TF_DIR)"
+      terraform show tfplan
 
 - task: PowerShell@2
   displayName: 'Terraform Apply'
