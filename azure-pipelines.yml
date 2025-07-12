@@ -2,10 +2,12 @@ trigger:
 - master
 
 pool:
-  vmImage: 'windows-latest'
+  name: default  # Using your self-hosted agent pool
+  demands:
+    - agent.name -equals Terraform
 
 variables:
-- group: terraform-secrets   # This must be created in Azure DevOps Library
+- group: terraform-secrets   # Your Azure DevOps variable group
 - name: TF_IN_AUTOMATION
   value: 'true'
 - name: TF_DIR
@@ -19,7 +21,7 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      cd $(TF_DIR)
+      cd "$(TF_DIR)"
       terraform init
 
 - task: PowerShell@2
@@ -27,7 +29,7 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      cd $(TF_DIR)
+      cd "$(TF_DIR)"
       terraform state list | findstr azurerm_resource_group.rg > $null
       if (!$?) {
         Write-Host "Resource not in state. Importing..."
@@ -41,7 +43,7 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      cd $(TF_DIR)
+      cd "$(TF_DIR)"
       terraform plan -out=tfplan
 
 - task: PowerShell@2
@@ -49,5 +51,5 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      cd $(TF_DIR)
+      cd "$(TF_DIR)"
       terraform apply -auto-approve tfplan
