@@ -1,13 +1,51 @@
 trigger:
-- main
+- master
 
 pool:
-  vmImage: 'ubuntu-22.04'
+  vmImage: 'windows-latest'
+
+variables:
+  - group: terraform-secrets    # ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_SUBSCRIPTION_ID, ARM_TENANT_ID
+  TF_IN_AUTOMATION: 'true'
+  TF_DIR: 'Azure-VM-Ubunutu'
 
 steps:
-- script: |
-    echo "Running on Ubuntu agent"
-    uname -a
-    pwd
-    ls -la
-  displayName: 'Linux Shell Script'
+- checkout: self
+
+- task: PowerShell@2
+  displayName: 'Terraform Init'
+  inputs:
+    targetType: 'inline'
+    script: |
+      cd $(TF_DIR)
+      terraform init
+
+- task: PowerShell@2
+  displayName: 'Terraform Import (One-Time)'
+  inputs:
+    targetType: 'inline'
+    script: |
+      cd $(TF_DIR)
+      terraform state list | findstr azurerm_resource_group.rg > $null
+      if (!$?) {
+        Write-Host "Resource not in state. Importing..."
+        terraform import azurerm_resource_group.rg /subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg
+      } else {
+        Write-Host "Resource already exists in state. Skipping import."
+      }
+
+- task: PowerShell@2
+  displayName: 'Terraform Plan'
+  inputs:
+    targetType: 'inline'
+    script: |
+      cd $(TF_DIR)
+      terraform plan -out=tfplan
+
+- task: PowerShell@2
+  displayName: 'Terraform Apply'
+  inputs:
+    targetType: 'inline'
+    script: |
+      cd $(TF_DIR)
+      terraform apply -auto-approve tfplan
