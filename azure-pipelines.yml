@@ -5,9 +5,11 @@ pool:
   vmImage: 'windows-latest'
 
 variables:
-  - group: terraform-secrets    # ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_SUBSCRIPTION_ID, ARM_TENANT_ID
-  TF_IN_AUTOMATION: 'true'
-  TF_DIR: 'Azure-VM-Ubunutu'
+- group: terraform-secrets   # This must be created in Azure DevOps Library
+- name: TF_IN_AUTOMATION
+  value: 'true'
+- name: TF_DIR
+  value: 'Azure-VM-Ubunutu'
 
 steps:
 - checkout: self
