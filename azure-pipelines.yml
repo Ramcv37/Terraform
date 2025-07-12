@@ -1,12 +1,13 @@
 trigger:
-- master
+- main
 
 pool:
-  name: Default
+  vmImage: 'ubuntu-22.04'
 
 steps:
-- powershell: |
-    Write-Host "Listing contents of current directory:"
-    Get-ChildItem
-  displayName: "List files in directory (Windows)"
-
+- script: |
+    echo "Running on Ubuntu agent"
+    uname -a
+    pwd
+    ls -la
+  displayName: 'Linux Shell Script'
