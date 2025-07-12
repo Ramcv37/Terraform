@@ -58,6 +58,15 @@ steps:
         Write-Host "NSG already in state. Skipping import."
       }
 
+      # Import Subnet
+      terraform state list | findstr azurerm_subnet.subnet > $null
+      if (!$?) {
+        Write-Host "Importing Subnet..."
+        terraform import azurerm_subnet.subnet /subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/virtualNetworks/Ram-vnet/subnets/Ram-subnet
+      } else {
+        Write-Host "Subnet already in state. Skipping import."
+      }
+
       # Import Public IP
       terraform state list | findstr azurerm_public_ip.public_ip > $null
       if (!$?) {
