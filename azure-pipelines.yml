@@ -2,12 +2,12 @@ trigger:
 - master
 
 pool:
-  name: default
+  name: default  # Using your self-hosted agent pool
   demands:
     - agent.name -equals Terraform
 
 variables:
-- group: terraform-secrets   # Azure DevOps Variable Group containing ARM credentials
+- group: terraform-secrets   # Your Azure DevOps variable group
 - name: TF_IN_AUTOMATION
   value: 'true'
 - name: TF_DIR
@@ -30,12 +30,41 @@ steps:
     targetType: 'inline'
     script: |
       cd "$(TF_DIR)"
+
+      # Import Resource Group
       terraform state list | findstr azurerm_resource_group.rg > $null
       if (!$?) {
-        Write-Host "Resource not in state. Importing..."
+        Write-Host "Importing Resource Group..."
         terraform import azurerm_resource_group.rg /subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg
       } else {
-        Write-Host "Resource already exists in state. Skipping import."
+        Write-Host "Resource Group already in state. Skipping import."
+      }
+
+      # Import Virtual Network
+      terraform state list | findstr azurerm_virtual_network.vnet > $null
+      if (!$?) {
+        Write-Host "Importing Virtual Network..."
+        terraform import azurerm_virtual_network.vnet /subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/virtualNetworks/Ram-vnet
+      } else {
+        Write-Host "Virtual Network already in state. Skipping import."
+      }
+
+      # Import Network Security Group
+      terraform state list | findstr azurerm_network_security_group.nsg > $null
+      if (!$?) {
+        Write-Host "Importing NSG..."
+        terraform import azurerm_network_security_group.nsg /subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/networkSecurityGroups/Ram-nsg
+      } else {
+        Write-Host "NSG already in state. Skipping import."
+      }
+
+      # Import Public IP
+      terraform state list | findstr azurerm_public_ip.public_ip > $null
+      if (!$?) {
+        Write-Host "Importing Public IP..."
+        terraform import azurerm_public_ip.public_ip /subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/publicIPAddresses/Ram-public-ip
+      } else {
+        Write-Host "Public IP already in state. Skipping import."
       }
 
 - task: PowerShell@2
@@ -45,17 +74,6 @@ steps:
     script: |
       cd "$(TF_DIR)"
       terraform plan -out=tfplan
-      if (!(Test-Path "tfplan")) {
-        Write-Error "tfplan file was not created. Failing the build."
-      }
-
-- task: PowerShell@2
-  displayName: 'Terraform Show Plan (Optional)'
-  inputs:
-    targetType: 'inline'
-    script: |
-      cd "$(TF_DIR)"
-      terraform show tfplan
 
 - task: PowerShell@2
   displayName: 'Terraform Apply'
