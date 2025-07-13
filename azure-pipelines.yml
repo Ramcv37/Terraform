@@ -52,14 +52,14 @@ steps:
         }
       }
 
-      # Special case: NSG association needs 2 separate IDs
+      # Special case: NSG association (requires NIC_ID|NSG_ID format)
       $assoc_name = "azurerm_network_interface_security_group_association.nsg_assoc"
       $assoc_exists = terraform state list | Select-String $assoc_name
       if (-not $assoc_exists) {
-        Write-Host "Importing $assoc_name..."
-        terraform import $assoc_name `
-          "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/networkInterfaces/Ram-nic" `
-          "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/networkSecurityGroups/Ram-nsg"
+        Write-Host "`nImporting $assoc_name..."
+        $nic_id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/networkInterfaces/Ram-nic"
+        $nsg_id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/networkSecurityGroups/Ram-nsg"
+        terraform import $assoc_name "$nic_id|$nsg_id"
       } else {
         Write-Host "$assoc_name already in state. Skipping import."
       }
