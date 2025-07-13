@@ -12,14 +12,6 @@ variables:
   value: 'true'
 - name: TF_DIR
   value: 'Azure-VM-Ubunutu'
-- name: VM_NAME
-  value: 'Ram-linux-vm'
-- name: RG_NAME
-  value: 'Ram-linux-vm-rg'
-- name: NIC_NAME
-  value: 'Ram-nic'
-- name: NSG_NAME
-  value: 'Ram-nsg'
 
 steps:
 - checkout: self
@@ -40,13 +32,13 @@ steps:
       cd "$(TF_DIR)"
 
       $resources = @(
-        @{ name = "azurerm_resource_group.rg"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/$(RG_NAME)" },
-        @{ name = "azurerm_virtual_network.vnet"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/$(RG_NAME)/providers/Microsoft.Network/virtualNetworks/Ram-vnet" },
-        @{ name = "azurerm_network_security_group.nsg"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/$(RG_NAME)/providers/Microsoft.Network/networkSecurityGroups/$(NSG_NAME)" },
-        @{ name = "azurerm_subnet.subnet"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/$(RG_NAME)/providers/Microsoft.Network/virtualNetworks/Ram-vnet/subnets/Ram-subnet" },
-        @{ name = "azurerm_public_ip.public_ip"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/$(RG_NAME)/providers/Microsoft.Network/publicIPAddresses/Ram-public-ip" },
-        @{ name = "azurerm_network_interface.nic"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/$(RG_NAME)/providers/Microsoft.Network/networkInterfaces/$(NIC_NAME)" },
-        @{ name = "azurerm_linux_virtual_machine.vm"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/$(RG_NAME)/providers/Microsoft.Compute/virtualMachines/$(VM_NAME)" }
+        @{ name = "azurerm_resource_group.rg"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg" },
+        @{ name = "azurerm_virtual_network.vnet"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/virtualNetworks/Ram-vnet" },
+        @{ name = "azurerm_network_security_group.nsg"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/networkSecurityGroups/Ram-nsg" },
+        @{ name = "azurerm_subnet.subnet"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/virtualNetworks/Ram-vnet/subnets/Ram-subnet" },
+        @{ name = "azurerm_public_ip.public_ip"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/publicIPAddresses/Ram-public-ip" },
+        @{ name = "azurerm_network_interface.nic"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/networkInterfaces/Ram-nic" },
+        @{ name = "azurerm_linux_virtual_machine.vm"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Compute/virtualMachines/Ram-linux-vm" }
       )
 
       foreach ($res in $resources) {
@@ -60,15 +52,15 @@ steps:
         }
       }
 
-      # ✅ Final fix for NSG Association: Use PowerShell array to pass both IDs
-      $nicId = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/$(RG_NAME)/providers/Microsoft.Network/networkInterfaces/$(NIC_NAME)"
-      $nsgId = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/$(RG_NAME)/providers/Microsoft.Network/networkSecurityGroups/$(NSG_NAME)"
-      $assocExists = terraform state list | Select-String "azurerm_network_interface_security_group_association.nsg_assoc"
-      if (-not $assocExists) {
-        Write-Host "`nImporting azurerm_network_interface_security_group_association.nsg_assoc..."
-        terraform import azurerm_network_interface_security_group_association.nsg_assoc @($nicId, $nsgId)
+      # Special handling for NSG Association (requires 2 IDs separated by a comma)
+      $assoc_name = "azurerm_network_interface_security_group_association.nsg_assoc"
+      $assoc_exists = terraform state list | Select-String $assoc_name
+      if (-not $assoc_exists) {
+        Write-Host "Importing $assoc_name..."
+        terraform import $assoc_name `
+        "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/networkInterfaces/Ram-nic,/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/networkSecurityGroups/Ram-nsg"
       } else {
-        Write-Host "azurerm_network_interface_security_group_association.nsg_assoc already in state. Skipping import."
+        Write-Host "$assoc_name already in state. Skipping import."
       }
 
 - task: PowerShell@2
