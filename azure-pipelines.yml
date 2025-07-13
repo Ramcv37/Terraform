@@ -2,12 +2,12 @@ trigger:
 - master
 
 pool:
-  name: default  # Using your self-hosted agent pool
+  name: default
   demands:
     - agent.name -equals Terraform
 
 variables:
-- group: terraform-secrets   # Your Azure DevOps variable group
+- group: terraform-secrets
 - name: TF_IN_AUTOMATION
   value: 'true'
 - name: TF_DIR
@@ -31,49 +31,26 @@ steps:
     script: |
       cd "$(TF_DIR)"
 
-      # Import Resource Group
-      terraform state list | findstr azurerm_resource_group.rg > $null
-      if (!$?) {
-        Write-Host "Importing Resource Group..."
-        terraform import azurerm_resource_group.rg /subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg
-      } else {
-        Write-Host "Resource Group already in state. Skipping import."
-      }
+      $resources = @(
+        @{ name = "azurerm_resource_group.rg"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg" },
+        @{ name = "azurerm_virtual_network.vnet"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/virtualNetworks/Ram-vnet" },
+        @{ name = "azurerm_network_security_group.nsg"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/networkSecurityGroups/Ram-nsg" },
+        @{ name = "azurerm_subnet.subnet"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/virtualNetworks/Ram-vnet/subnets/Ram-subnet" },
+        @{ name = "azurerm_public_ip.public_ip"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/publicIPAddresses/Ram-public-ip" },
+        @{ name = "azurerm_network_interface.nic"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/networkInterfaces/Ram-nic" },
+        @{ name = "azurerm_network_interface_security_group_association.nsg_assoc"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/networkInterfaces/Ram-nic/networkSecurityGroup" },
+        @{ name = "azurerm_linux_virtual_machine.vm"; id = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Compute/virtualMachines/Ram-vm" }
+      )
 
-      # Import Virtual Network
-      terraform state list | findstr azurerm_virtual_network.vnet > $null
-      if (!$?) {
-        Write-Host "Importing Virtual Network..."
-        terraform import azurerm_virtual_network.vnet /subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/virtualNetworks/Ram-vnet
-      } else {
-        Write-Host "Virtual Network already in state. Skipping import."
-      }
-
-      # Import Network Security Group
-      terraform state list | findstr azurerm_network_security_group.nsg > $null
-      if (!$?) {
-        Write-Host "Importing NSG..."
-        terraform import azurerm_network_security_group.nsg /subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/networkSecurityGroups/Ram-nsg
-      } else {
-        Write-Host "NSG already in state. Skipping import."
-      }
-
-      # Import Subnet
-      terraform state list | findstr azurerm_subnet.subnet > $null
-      if (!$?) {
-        Write-Host "Importing Subnet..."
-        terraform import azurerm_subnet.subnet /subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/virtualNetworks/Ram-vnet/subnets/Ram-subnet
-      } else {
-        Write-Host "Subnet already in state. Skipping import."
-      }
-
-      # Import Public IP
-      terraform state list | findstr azurerm_public_ip.public_ip > $null
-      if (!$?) {
-        Write-Host "Importing Public IP..."
-        terraform import azurerm_public_ip.public_ip /subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/Ram-linux-vm-rg/providers/Microsoft.Network/publicIPAddresses/Ram-public-ip
-      } else {
-        Write-Host "Public IP already in state. Skipping import."
+      foreach ($res in $resources) {
+        Write-Host "`nChecking $($res.name)..."
+        $exists = terraform state list | Select-String $res.name
+        if (-not $exists) {
+          Write-Host "Importing $($res.name)..."
+          terraform import $res.name $res.id
+        } else {
+          Write-Host "$($res.name) already in state. Skipping import."
+        }
       }
 
 - task: PowerShell@2
