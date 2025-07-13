@@ -60,14 +60,13 @@ steps:
         }
       }
 
-      # Import NSG association (requires two IDs space-separated)
+      # ✅ Final fix for NSG Association: Use PowerShell array to pass both IDs
       $nicId = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/$(RG_NAME)/providers/Microsoft.Network/networkInterfaces/$(NIC_NAME)"
       $nsgId = "/subscriptions/$(ARM_SUBSCRIPTION_ID)/resourceGroups/$(RG_NAME)/providers/Microsoft.Network/networkSecurityGroups/$(NSG_NAME)"
       $assocExists = terraform state list | Select-String "azurerm_network_interface_security_group_association.nsg_assoc"
       if (-not $assocExists) {
         Write-Host "`nImporting azurerm_network_interface_security_group_association.nsg_assoc..."
-        $combinedId = "$nicId $nsgId"
-        terraform import azurerm_network_interface_security_group_association.nsg_assoc "$combinedId"
+        terraform import azurerm_network_interface_security_group_association.nsg_assoc @($nicId, $nsgId)
       } else {
         Write-Host "azurerm_network_interface_security_group_association.nsg_assoc already in state. Skipping import."
       }
