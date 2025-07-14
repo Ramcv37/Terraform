@@ -2,7 +2,7 @@ trigger:
   - main
 
 pool:
-  name: ram   # This is your custom agent pool name
+  name: ram  # This is your custom agent pool name
   demands:
     - Agent.Name -equals terra  # Ensures pipeline runs only on agent named 'terra'
 
