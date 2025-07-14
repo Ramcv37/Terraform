@@ -2,9 +2,9 @@ trigger:
 - master
 
 pool:
-  name: default
+  name: ram
   demands:
-    - agent.name -equals Terraform
+    - agent.name -equals terra
 
 variables:
 - group: terraform-secrets
