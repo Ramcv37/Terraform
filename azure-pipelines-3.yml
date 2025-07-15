@@ -1,19 +1,14 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger:
-- master
+  - main
 
 pool:
-  vmImage: ubuntu-latest
+  name: ram  # This is your custom agent pool name
+  demands:
+    - Agent.Name -equals terra  # Ensures pipeline runs only on agent named 'terra'
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+  - script: |
+      echo "Running on agent: $(Agent.Name)"
+      echo "Hello from your self-hosted agent!"
+      dotnet --version
+    displayName: 'Run Sample Script'
