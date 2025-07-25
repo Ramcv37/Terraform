@@ -10,10 +10,20 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
-- task: Bash@3
+- task: TerraformInstaller@1
   inputs:
-    targetType: 'inline'
-    script: |
-      # Write your commands here
-      
-      echo 'Hello world'
+    terraformVersion: 'latest'
+- task: TerraformTask@5
+  inputs:
+    provider: 'azurerm'
+    command: 'init'
+    backendServiceArm: 'Terraform-AzureDevOps'
+    backendAzureRmStorageAccountName: 'tfstatestorage537'
+    backendAzureRmContainerName: 'tfstate'
+    backendAzureRmKey: 'terraform.tfstate'
+
+- task: TerraformTask@5
+  inputs:
+    provider: 'azurerm'
+    command: 'plan'
+    environmentServiceNameAzureRM: 'Terraform-AzureDevOps'
